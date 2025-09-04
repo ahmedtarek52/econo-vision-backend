@@ -1,0 +1,90 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+instance/
+*.egg-info/
+.env
+.venv/
+venv/
+ENV/
+env/
+pip-wheel-metadata/
+
+# Flask specific
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Byte-compiled / optimized / DLL files
+*.py[cod]
+*$py.class
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg
+MANIFEST
+
+# Node / Frontend (if you mix frontend + backend in one repo)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE / Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+*.seed
+*.pid.lock
+docker-compose.override.yml
+
+# Large files
+*.tar
+*.gz
+*.zip
+*.7z
+*.bak
+*.old
+*.orig
+
+# Ignore sensitive configs
+*.env
+config.json
+secret.key

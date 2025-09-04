@@ -1,0 +1,21 @@
+# Core Framework
+Flask
+Flask-Cors
+python-dotenv
+
+# Data Handling & Numerics
+pandas
+numpy
+scikit-learn
+openpyxl   # For reading .xlsx files
+
+# Statistical Modeling & Time Series
+statsmodels
+scipy
+pmdarima   # For auto-ARIMA
+# py-ardl removed (use statsmodels.tsa.ardl instead)
+
+# Report Generation (Optional)
+reportlab    # For PDF reports
+python-docx  # For Word reports
+requests  
