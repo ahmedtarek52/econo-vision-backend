@@ -10,7 +10,7 @@ def create_app():
     # Configure CORS based on environment
     if os.environ.get('FLY_APP_NAME'):
         # Production: Allow your production frontend domain
-        CORS(app, resources={r"/api/*": {"origins": ["https://your-frontend-domain.com"]}})
+        CORS(app, resources={r"/api/*": {"origins": ["https://econo-vision.vercel.app"]}})
     else:
         # Development: Allow localhost
         CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
