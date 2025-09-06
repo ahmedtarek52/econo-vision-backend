@@ -1,8 +1,5 @@
-# fly.toml app configuration file
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-
-app = " econo-vision-backend"
-primary_region = "iad"
+app = "my-flask-backend"  # Use a valid name here
+primary_region = "cdg"    # I see you're using Paris region
 
 [build]
 
