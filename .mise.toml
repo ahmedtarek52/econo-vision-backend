@@ -1,2 +1,6 @@
 [settings]
 python_compile = true
+python_default_packages_file = ""
+
+[tools]
+python = "3.11.9"
