@@ -88,3 +88,4 @@ docker-compose.override.yml
 *.env
 config.json
 secret.key
+serviceAccountKey.json

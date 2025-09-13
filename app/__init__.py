@@ -2,10 +2,25 @@ from flask import Flask
 from flask_cors import CORS
 from .config import Config
 import os
+import firebase_admin
+from firebase_admin import credentials
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+
+    # --- FIREBASE INITIALIZATION START ---
+    try:
+        # Path to your service account key file
+        cred_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'serviceAccountKey.json')
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred)
+        print("Firebase App initialized successfully.")
+    except Exception as e:
+        print(f"Error initializing Firebase App: {e}")
+        # This will help debug if the key file is missing or corrupted.
+    # --- FIREBASE INITIALIZATION END ---
     
     # Configure CORS based on environment
     if os.environ.get('FLY_APP_NAME'):

@@ -20,3 +20,4 @@ reportlab    # For PDF reports
 python-docx  # For Word reports
 requests  
 gunicorn
+firebase-admin

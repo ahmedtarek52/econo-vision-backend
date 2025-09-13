@@ -1,11 +1,15 @@
 # app/blueprints/contact/routes.py
 from flask import Blueprint, request, jsonify
+from firebase_admin import firestore
 
 contact_bp = Blueprint('contact_bp', __name__)
 
 @contact_bp.route('/submit', methods=['POST'])
 def submit_feedback():
     try:
+        # Initialize Firestore DB client
+        db = firestore.client()
+
         data = request.get_json()
         
         email = data.get('email')
@@ -16,16 +20,19 @@ def submit_feedback():
         if not all([email, subject, message]):
             return jsonify({"error": "Email, subject, and message are required."}), 400
 
-        # In a real application, you would send an email or save this to a database.
-        # For this project, we'll just print it to the console to confirm receipt.
-        print("--- New Feedback Received ---")
-        print(f"Email: {email}")
-        print(f"Subject: {subject}")
-        print(f"Rating: {rating if rating > 0 else 'Not provided'}")
-        print(f"Message: {message}")
-        print("-----------------------------")
+        # Create a new document in the 'contacts' collection
+        doc_ref = db.collection('contacts').document()
+        doc_ref.set({
+            'email': email,
+            'subject': subject,
+            'message': message,
+            'rating': rating,
+            'timestamp': firestore.SERVER_TIMESTAMP  # Adds a server-side timestamp
+        })
 
-        return jsonify({"message": "Feedback received successfully!"}), 200
+        return jsonify({"message": "Feedback saved successfully!"}), 200
 
     except Exception as e:
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+        # Log the full error to the console for debugging
+        print(f"An error occurred while saving to Firestore: {e}")
+        return jsonify({"error": f"An internal server error occurred: {str(e)}"}), 500
