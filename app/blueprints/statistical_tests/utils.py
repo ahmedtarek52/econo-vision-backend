@@ -1,106 +1,96 @@
 # app/blueprints/statistical_tests/utils.py
-
 import pandas as pd
+from statsmodels.tsa.stattools import adfuller, grangercausalitytests
 import numpy as np
-from statsmodels.tsa.stattools import adfuller, acf, pacf
-from statsmodels.stats.outliers_influence import variance_inflation_factor
-from statsmodels.tools.tools import add_constant
-from statsmodels.tsa.api import VAR
-from statsmodels.tsa.vector_ar.vecm import coint_johansen
 
-# ==========================================================
-# 🧪 الاختبار 1: السكون (ADF Test)
-# ==========================================================
-def run_stationarity_tests(df):
-    """Runs the ADF test on all numeric columns of a DataFrame."""
-    stationarity_results = []
-    numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
-    for col in numeric_cols:
-        series = df[col].dropna()
-        if len(series) < 10: continue
-        
-        result = adfuller(series)
-        stationarity_results.append({
-            "variable": col,
-            "p_value": result[1],
-            "is_stationary": bool(result[1] <= 0.05)
-        })
-    return stationarity_results
-
-# ==========================================================
-# 🧪 الاختبار 2: الارتباط الذاتي (ACF & PACF) لنموذج ARIMA
-# ==========================================================
-def run_autocorrelation_analysis(df):
-    """Calculates ACF and PACF values for all numeric columns."""
-    autocorrelation_results = []
-    numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
-    for col in numeric_cols:
-        series = df[col].dropna()
-        if len(series) < 20: continue
-
-        acf_values = acf(series, nlags=20, fft=True).tolist()
-        pacf_values = pacf(series, nlags=20).tolist()
-        autocorrelation_results.append({
-            "variable": col,
-            "acf": acf_values,
-            "pacf": pacf_values
-        })
-    return autocorrelation_results
-
-# ==========================================================
-# 🧪 الاختبار 3: الارتباط الخطي المتعدد (VIF)
-# ==========================================================
-def run_multicollinearity_test(df, independent_vars):
-    """Calculates the Variance Inflation Factor (VIF) for independent variables."""
-    if not independent_vars or len(independent_vars) < 2:
-        return [] # VIF requires at least two independent variables
-        
-    X = df[independent_vars].dropna()
-    # إضافة ثابت (intercept) للبيانات
-    X_const = add_constant(X)
+def run_adf_test(df, variable):
+    """
+    Performs the Augmented Dickey-Fuller test and formats the output.
+    """
+    series = df[variable]
+    result = adfuller(series, autolag='AIC')
     
-    vif_data = pd.DataFrame()
-    vif_data["variable"] = X.columns
-    vif_data["vif_factor"] = [variance_inflation_factor(X_const.values, i + 1) for i in range(len(X.columns))]
+    output = f"Augmented Dickey-Fuller Unit Root Test on {variable}\n"
+    output += f"Null Hypothesis: {variable} has a unit root\n"
+    output += "--------------------------------------------------------------\n"
     
-    return vif_data.to_dict(orient='records')
+    output += f"ADF Statistic:              {result[0]:.4f}\n"
+    output += f"p-value:                    {result[1]:.4f}\n"
+    output += f"Lags Used:                  {result[2]}\n"
+    output += f"Number of Observations:     {result[3]}\n\n"
+    
+    output += "Critical Values:\n"
+    for key, value in result[4].items():
+        output += f"    {key}:                  {value:.4f}\n"
+    
+    output += "--------------------------------------------------------------\n"
+    
+    # Interpretation
+    interpretation = ""
+    if result[1] <= 0.05:
+        interpretation = (
+            f"Conclusion: The p-value ({result[1]:.4f}) is less than 0.05. "
+            "We reject the null hypothesis.\n"
+            f"The '{variable}' series is likely **stationary**."
+        )
+    else:
+        interpretation = (
+            f"Conclusion: The p-value ({result[1]:.4f}) is greater than 0.05. "
+            "We fail to reject the null hypothesis.\n"
+            f"The '{variable}' series is likely **non-stationary**.\n"
+            "Recommendation: Consider differencing the series."
+        )
+        
+    return {"formatted_results": output, "interpretation": interpretation}
 
-# ==========================================================
-# 🧪 الاختبار 4: تحديد فترة الإبطاء المثلى (VAR Lag Order)
-# ==========================================================
-def run_optimal_lag_selection(df):
-    """Selects the optimal lag order for a VAR model."""
+
+def run_granger_causality_test(df, max_lags=2):
+    """
+    Performs pairwise Granger Causality tests on all numeric columns.
+    """
     numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+    
     if len(numeric_cols) < 2:
-        return {}
+        return {
+            "formatted_results": "Granger Causality test requires at least two numeric variables.",
+            "interpretation": "Please provide more data."
+        }
         
-    model = VAR(df[numeric_cols].dropna())
-    # يمكنك زيادة maxlags إذا كانت بياناتك تسمح بذلك (ربع سنوية أو شهرية)
-    selected_lags = model.select_order(maxlags=4)
+    output = f"Pairwise Granger Causality Tests\n"
+    output += f"Sample: 1 to {len(df)}\n"
+    output += f"Lags: {max_lags}\n"
+    output += "=================================================================\n"
+    output += "Null Hypothesis:                            F-Statistic    Prob.\n"
+    output += "-----------------------------------------------------------------\n"
     
-    # تحويل ملخص النتائج إلى جدول HTML لسهولة عرضه
-    return selected_lags.summary().as_html()
+    all_results = []
+    
+    from itertools import permutations
+    for col1, col2 in permutations(numeric_cols, 2):
+        test_data = df[[col2, col1]]
+        results = grangercausalitytests(test_data, [max_lags], verbose=False)
+        
+        # Extract results for the specified lag
+        f_statistic = results[max_lags][0]['ssr_ftest'][0]
+        p_value = results[max_lags][0]['ssr_ftest'][1]
+        
+        line = f"{col1} does not Granger Cause {col2}".ljust(40)
+        line += f"{f_statistic:.4f}".rjust(12)
+        line += f"{p_value:.4f}".rjust(9)
+        output += line + "\n"
+        all_results.append({'cause': col1, 'effect': col2, 'p_value': p_value})
+        
+    output += "=================================================================\n"
+    
+    # Interpretation
+    significant_relations = [
+        f"'{res['cause']}' may Granger-cause '{res['effect']}' (p={res['p_value']:.4f})"
+        for res in all_results if res['p_value'] <= 0.05
+    ]
+    
+    if significant_relations:
+        interpretation = "Significant relationships found (at 5% level):\n- " + "\n- ".join(significant_relations)
+    else:
+        interpretation = "No significant Granger causality relationships were found between any pair of variables at the 5% significance level."
 
-# ==========================================================
-# 🧪 الاختبار 5: التكامل المشترك (Johansen Test)
-# ==========================================================
-def run_johansen_cointegration_test(df):
-    """Performs the Johansen Cointegration test."""
-    numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
-    if len(numeric_cols) < 2 or len(df) < 20:
-        return {}
-
-    # det_order=0 يفترض وجود ثابت في علاقة التكامل المشترك
-    # k_ar_diff=1 يفترض أن النموذج الأساسي هو VAR(2) على متغيرات المستوى
-    result = coint_johansen(df[numeric_cols].dropna(), det_order=0, k_ar_diff=1)
-    
-    trace_stat = result.lr1
-    trace_crit_vals = result.cvt
-    
-    # حساب عدد علاقات التكامل المشترك عند مستوى ثقة 95%
-    num_cointegrating_relations = np.sum(trace_stat > trace_crit_vals[:, 1])
-    
-    return {
-        "interpretation": f"The test suggests there are {num_cointegrating_relations} cointegrating relationships among the variables at the 95% significance level.",
-        "details": f"Trace Statistic: {np.round(trace_stat, 2).tolist()}\nCritical Values (95%): {trace_crit_vals[:, 1].tolist()}"
-    }
+    return {"formatted_results": output, "interpretation": interpretation}
