@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة التحليل الاقتصادي | Econo Vision</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-bg: #f8f9fa;
+            --dark-bg: #343a40;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .hero-section {
+            background: linear-gradient(rgba(44, 62, 80, 0.8), rgba(52, 152, 219, 0.8)), url('https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 5rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            color: white;
+            font-weight: 600;
+            border-bottom: none;
+            padding: 1rem 1.5rem;
+        }
+        
+        .btn-primary {
+            background: var(--secondary-color);
+            border-color: var(--secondary-color);
+            border-radius: 30px;
+            padding: 0.5rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+            border-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        .indicator-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .indicator-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .indicator-title {
+            font-size: 1rem;
+            color: #6c757d;
+            margin-bottom: 0;
+        }
+        
+        .indicator-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--secondary-color);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-icon {
+            background-color: var(--secondary-color);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .section-title {
+            position: relative;
+            margin-bottom: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .section-title:after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background-color: var(--secondary-color);
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            color: #6c757d;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--secondary-color);
+            background: transparent;
+            border-bottom: 3px solid var(--secondary-color);
+        }
+        
+        footer {
+            background-color: var(--dark-bg);
+            color: white;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+        
+        @media (max-width: 768px) {
+            .indicator-value {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="fas fa-chart-line me-2"></i>Econo Vision</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="fas fa-home me-1"></i> الرئيسية</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/custom/dashboard"><i class="fas fa-tachometer-alt me-1"></i> لوحة التحكم</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/custom/data"><i class="fas fa-database me-1"></i> البيانات</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/custom/econometrics"><i class="fas fa-calculator me-1"></i> التحليل القياسي</a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <button class="btn btn-outline-light" type="button">
+                        <i class="fas fa-user me-1"></i> تسجيل الدخول
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-section text-center">
+        <div class="container">
+            <h1 class="display-4 fw-bold mb-4">منصة التحليل الاقتصادي والإحصائي</h1>
+            <p class="lead mb-5">أدوات متقدمة للتحليل الاقتصادي والإحصائي مع واجهة سهلة الاستخدام وتقارير تفاعلية</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="/custom/dashboard" class="btn btn-primary btn-lg px-4 py-2">
+                    <i class="fas fa-tachometer-alt me-2"></i>لوحة التحكم
+                </a>
+                <a href="/custom/data" class="btn btn-outline-light btn-lg px-4 py-2">
+                    <i class="fas fa-database me-2"></i>استعراض البيانات
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <div class="container">
+        <!-- المؤشرات الاقتصادية الرئيسية -->
+        <h2 class="section-title mb-4">المؤشرات الاقتصادية الرئيسية</h2>
+        <div class="row g-4 mb-5">
+            <div class="col-md-3 col-sm-6">
+                <div class="card indicator-card">
+                    <div class="indicator-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="indicator-value" id="gdp-growth">5.2%</div>
+                    <h5 class="indicator-title">معدل نمو الناتج المحلي</h5>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="card indicator-card">
+                    <div class="indicator-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="indicator-value" id="inflation-rate">3.8%</div>
+                    <h5 class="indicator-title">معدل التضخم</h5>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="card indicator-card">
+                    <div class="indicator-icon">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="indicator-value" id="unemployment-rate">7.5%</div>
+                    <h5 class="indicator-title">معدل البطالة</h5>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="card indicator-card">
+                    <div class="indicator-icon">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="indicator-value" id="interest-rate">4.25%</div>
+                    <h5 class="indicator-title">سعر الفائدة</h5>
+                </div>
+            </div>
+        </div>
+
+        <!-- الرسوم البيانية -->
+        <div class="row mb-5">
+            <div class="col-lg-8 mb-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">تطور المؤشرات الاقتصادية</h5>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="chartPeriodDropdown" data-bs-toggle="dropdown">
+                                آخر 12 شهر
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#">آخر 3 أشهر</a></li>
+                                <li><a class="dropdown-item" href="#">آخر 6 أشهر</a></li>
+                                <li><a class="dropdown-item" href="#">آخر 12 شهر</a></li>
+                                <li><a class="dropdown-item" href="#">آخر 5 سنوات</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="economicIndicatorsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">توزيع الناتج المحلي حسب القطاعات</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="gdpSectorsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- تحميل البيانات والتحليل -->
+        <div class="row mb-5">
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-upload me-2"></i>تحميل البيانات</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="uploadForm">
+                            <div class="mb-3">
+                                <label for="dataFile" class="form-label">اختر ملف البيانات (CSV أو Excel)</label>
+                                <input class="form-control" type="file" id="dataFile" accept=".csv,.xlsx">
+                            </div>
+                            <div class="mb-3">
+                                <label for="dataDescription" class="form-label">وصف البيانات (اختياري)</label>
+                                <textarea class="form-control" id="dataDescription" rows="2"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload me-2"></i>تحميل
+                            </button>
+                        </form>
+                        <div class="mt-3" id="uploadStatus"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-tools me-2"></i>أدوات التحليل السريع</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-3">
+                            <a href="/custom/dashboard" class="btn btn-outline-primary">
+                                <i class="fas fa-chart-bar me-2"></i>تحليل البيانات الوصفي
+                            </a>
+                            <a href="/custom/econometrics" class="btn btn-outline-primary">
+                                <i class="fas fa-calculator me-2"></i>التحليل القياسي المتقدم
+                            </a>
+                            <a href="/custom/data" class="btn btn-outline-primary">
+                                <i class="fas fa-table me-2"></i>استعراض البيانات المتاحة
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- المميزات الرئيسية -->
+        <h2 class="section-title mb-4">مميزات المنصة</h2>
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="feature-icon mx-auto">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <h4>تحليل بياني متقدم</h4>
+                        <p class="text-muted">رسوم بيانية تفاعلية متعددة الأنواع لتمثيل البيانات الاقتصادية بشكل مرئي جذاب</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="feature-icon mx-auto">
+                            <i class="fas fa-calculator"></i>
+                        </div>
+                        <h4>نماذج قياسية متقدمة</h4>
+                        <p class="text-muted">تحليلات اقتصادية قياسية متقدمة باستخدام نماذج ARIMA وتحليل السلاسل الزمنية</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="feature-icon mx-auto">
+                            <i class="fas fa-file-export"></i>
+                        </div>
+                        <h4>تصدير التقارير</h4>
+                        <p class="text-muted">إمكانية تصدير النتائج والتقارير بصيغ متعددة مثل PDF وExcel وCSV</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-chart-line me-2"></i>Econo Vision</h5>
+                    <p>منصة متكاملة للتحليل الاقتصادي والإحصائي</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p>&copy; 2023 Econo Vision. جميع الحقوق محفوظة.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        // تهيئة الرسوم البيانية
+        document.addEventListener('DOMContentLoaded', function() {
+            // رسم بياني للمؤشرات الاقتصادية
+            const economicCtx = document.getElementById('economicIndicatorsChart').getContext('2d');
+            const economicChart = new Chart(economicCtx, {
+                type: 'line',
+                data: {
+                    labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'],
+                    datasets: [{
+                        label: 'معدل النمو',
+                        data: [4.8, 4.9, 5.0, 5.1, 5.2, 5.3, 5.4, 5.3, 5.2, 5.3, 5.4, 5.2],
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'معدل التضخم',
+                        data: [4.2, 4.0, 3.9, 3.8, 3.7, 3.6, 3.7, 3.8, 3.9, 3.8, 3.7, 3.8],
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'معدل البطالة',
+                        data: [7.8, 7.7, 7.6, 7.5, 7.4, 7.3, 7.4, 7.5, 7.6, 7.5, 7.4, 7.5],
+                        borderColor: '#2ecc71',
+                        backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // رسم بياني لتوزيع الناتج المحلي
+            const gdpCtx = document.getElementById('gdpSectorsChart').getContext('2d');
+            const gdpChart = new Chart(gdpCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['الخدمات', 'الصناعة', 'الزراعة', 'البناء والتشييد', 'أخرى'],
+                    datasets: [{
+                        data: [45, 30, 10, 12, 3],
+                        backgroundColor: [
+                            '#3498db',
+                            '#2ecc71',
+                            '#f1c40f',
+                            '#e74c3c',
+                            '#9b59b6'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+
+            // تحديث المؤشرات بشكل دوري (محاكاة)
+            function updateIndicators() {
+                const gdpGrowth = (5 + Math.random() * 0.5).toFixed(1);
+                const inflation = (3.5 + Math.random() * 0.6).toFixed(1);
+                const unemployment = (7.2 + Math.random() * 0.6).toFixed(1);
+                const interestRate = (4 + Math.random() * 0.5).toFixed(2);
+                
+                document.getElementById('gdp-growth').textContent = gdpGrowth + '%';
+                document.getElementById('inflation-rate').textContent = inflation + '%';
+                document.getElementById('unemployment-rate').textContent = unemployment + '%';
+                document.getElementById('interest-rate').textContent = interestRate + '%';
+            }
+            
+            // تحديث المؤشرات كل 5 ثواني
+            updateIndicators();
+            setInterval(updateIndicators, 5000);
+        });
+
+        // معالجة نموذج تحميل الملفات
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('dataFile');
+            const file = fileInput.files[0];
+            const description = document.getElementById('dataDescription').value;
+            const statusDiv = document.getElementById('uploadStatus');
+            
+            if (!file) {
+                statusDiv.innerHTML = '<div class="alert alert-danger">يرجى اختيار ملف</div>';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            if (description) {
+                formData.append('description', description);
+            }
+            
+            statusDiv.innerHTML = '<div class="alert alert-info">جاري التحميل...</div>';
+            
+            fetch('/custom/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusDiv.innerHTML = '<div class="alert alert-success">تم تحميل الملف بنجاح</div>';
+                    fileInput.value = '';
+                    document.getElementById('dataDescription').value = '';
+                } else {
+                    statusDiv.innerHTML = '<div class="alert alert-danger">حدث خطأ أثناء التحميل: ' + (data.error || 'خطأ غير معروف') + '</div>';
+                }
+            })
+            .catch(error => {
+                statusDiv.innerHTML = '<div class="alert alert-danger">حدث خطأ أثناء التحميل</div>';
+            });
+        });
+    </script>
+</body>
+</html>
