@@ -8,6 +8,7 @@ from flask_cors import CORS
 # from .extensions import redis_client 
 
 def create_app():
+    print("🚀 STORAGE APP STARTING: create_app() called")
     app = Flask(__name__)
     
     # --- إعدادات الأمان ---
