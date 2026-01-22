@@ -1,5 +1,6 @@
 from functools import wraps
 from flask import session, jsonify, request
+from firebase_admin import auth
 
 def login_required(f):
     """
@@ -14,12 +15,22 @@ def login_required(f):
         if request.method == 'OPTIONS':
             return jsonify({'status': 'ok'}), 200
 
-        if 'user_id' not in session:
-            # يمكننا طباعة رسالة في السيرفر للتأكد
-            # print(f"Access denied: No user_id in session. Path: {request.path}")
-            return jsonify({"error": "Authentication required. Please log in."}), 401
-        
-        # إذا كان المستخدم مسجلاً دخوله، قم بتشغيل الدالة الأصلية
-        return f(*args, **kwargs)
+        # 1. Check Session (Primary method)
+        if 'user_id' in session:
+            return f(*args, **kwargs)
+
+        # 2. Check Authorization Header (Fallback method)
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+            try:
+                decoded_token = auth.verify_id_token(token)
+                session['user_id'] = decoded_token['uid']
+                return f(*args, **kwargs)
+            except Exception as e:
+                print(f"Token verification failed: {e}")
+                return jsonify({"error": "Invalid or expired token"}), 401
+
+        return jsonify({"error": "Authentication required. Please log in."}), 401
     
     return decorated_function
