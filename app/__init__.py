@@ -1,6 +1,4 @@
 from flask import Flask
-import firebase_admin
-from firebase_admin import credentials, initialize_app
 import os
 from flask_cors import CORS
 
@@ -23,38 +21,6 @@ def create_app():
          allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
          methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"]
     )
-
-    # --- إعدادات Firebase ---
-    try:
-        # تحديد مسار ملف المفاتيح (Service Account)
-        # يفترض أن الملف موجود في المجلد الرئيسي (root) بجانب مجلد app
-        cred_path = os.path.join(os.path.dirname(app.instance_path), 'serviceAccountKey.json')
-        
-        # في حال كنت تشغل التطبيق ومسار الـ instance مختلف، قد تحتاج لتعديل المسار أعلاه
-        # ليكون os.path.join(os.getcwd(), 'serviceAccountKey.json')
-        if not os.path.exists(cred_path):
-             # محاولة بديلة للمسار المباشر
-             cred_path = 'serviceAccountKey.json'
-
-        # التحقق مرة أخرى بعد المحاولة البديلة
-        if os.path.exists(cred_path):
-            cred = credentials.Certificate(cred_path)
-            
-            # التحقق مما إذا كان Firebase قد تم تهيئته مسبقاً لتجنب الخطأ عند إعادة التشغيل
-            if not firebase_admin._apps:
-                initialize_app(cred)
-                print(f"✅ Firebase App Initialized Successfully using {cred_path}.")
-            else:
-                print("ℹ️ Firebase App already initialized.")
-        else:
-            print("❌ CRITICAL: 'serviceAccountKey.json' NOT FOUND.")
-            
-    except Exception as e:
-        print(f"CRITICAL: Failed to initialize Firebase Admin: {e}")
-        try:
-            print("Service Account Key Path Tried:", os.path.abspath(cred_path))
-        except: pass
-        print("!!! (Please ensure 'serviceAccountKey.json' exists in the root folder) !!!")
 
     # --- تعريف إعدادات CORS الموحدة للـ Blueprints ---
     # نستخدم هذا التكوين لضمان توحيد السياسات لكل الـ Endpoints

@@ -2,7 +2,6 @@
 from flask import Blueprint, request, jsonify, current_app 
 import pandas as pd 
 import numpy as np 
-from firebase_admin import firestore # (!!!) (إضافة جديدة) (!!!)
 
 # --- (!!!) (إضافة جديدة: استيراد الحارس) (!!!) ---
 # (استخدمنا ".." مرتين للرجوع من 'reports' إلى 'blueprints' ثم إلى 'app')
@@ -39,46 +38,8 @@ def handle_error(e, default_message="An error occurred", status_code=500):
 
 # --- (!!!) (إضافة جديدة: دالة العداد الآمنة) (!!!) ---
 def get_next_report_count():
-    """
-    Atomically increments and returns the global report counter using Firestore.
-    This is thread-safe and production-ready.
-    """
-    try:
-        db = firestore.client()
-        counter_ref = db.collection('metadata').document('app_counters')
-
-        # @firestore.transactional
-        # def update_in_transaction(transaction, doc_ref):
-        #     snapshot = doc_ref.get(transaction=transaction)
-        #     if not snapshot.exists:
-        #         # If counter doesn't exist, create it starting at 1
-        #         new_count = 1001 # (ابدأ من 1001 إذا أردت)
-        #         transaction.set(doc_ref, {'report_count': new_count})
-        #         return new_count
-            
-        #     old_count = snapshot.get('report_count') or 0
-        #     new_count = old_count + 1
-        #     transaction.update(doc_ref, {'report_count': new_count})
-        #     return new_count
-
-        # transaction = db.transaction()
-        # final_count = update_in_transaction(transaction, counter_ref)
-        
-        # (طريقة أبسط وأكثر حداثة باستخدام Increment)
-        result = counter_ref.update({'report_count': firestore.Increment(1)})
-        # (نحتاج قراءة القيمة بعد التحديث)
-        snapshot = counter_ref.get()
-        if snapshot.exists:
-            return snapshot.get('report_count')
-        else:
-            # (إذا لم يكن المستند موجوداً، أنشئه)
-            counter_ref.set({'report_count': 1001})
-            return 1001
-
-    except Exception as e:
-        print(f"CRITICAL: Failed to increment report counter in Firestore: {e}")
-        # Fallback (non-thread-safe) just in case
-        return np.random.randint(1000, 9999) 
+    import numpy as np
+    return np.random.randint(1000, 9999) 
 # --- (!!!) (نهاية الإضافة) (!!!) ---
 
 
@@ -162,16 +123,4 @@ def generate_smart_report():
 @login_required # (!!!) (تمت إضافة الحارس) (!!!)
 def get_report_count():
     """Returns the current report generation count."""
-    # (!!!) (تعديل) قراءة العداد من Firestore
-    try:
-        db = firestore.client()
-        counter_ref = db.collection('metadata').document('app_counters')
-        snapshot = counter_ref.get()
-        if snapshot.exists:
-            count = snapshot.get('report_count') or 0
-            return jsonify({"count": count})
-        else:
-            return jsonify({"count": 0}) # أو 1000 كقيمة أولية
-    except Exception as e:
-        print(f"Error reading report count from Firestore: {e}")
-        return jsonify({"error": "Could not retrieve report count."}), 500
+    return jsonify({"count": 1000})

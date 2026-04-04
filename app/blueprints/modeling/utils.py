@@ -63,38 +63,6 @@ import traceback
 
 from statsmodels.tsa.stattools import adfuller, kpss
 from statsmodels.tsa.vector_ar.vecm import coint_johansen
-from firebase_admin import storage
-
-def get_dataframe_from_cloud(file_path):
-    """
-    تحميل ملف من Firebase Storage وتحويله لـ DataFrame عند الطلب
-    """
-    try:
-        print(f"Downloading file from cloud: {file_path}")
-        bucket = storage.bucket()
-        blob = bucket.blob(file_path)
-
-        # تحميل الملف في الذاكرة (RAM)
-        data_bytes = blob.download_as_string()
-
-        # تحديد الامتداد
-        if file_path.endswith('.csv'):
-            df = pd.read_csv(io.BytesIO(data_bytes))
-        elif file_path.endswith(('.xlsx', '.xls')):
-            df = pd.read_excel(io.BytesIO(data_bytes))
-        elif file_path.endswith('.json'):
-            df = pd.read_json(io.BytesIO(data_bytes))
-        else:
-            # محاولة افتراضية
-            try:
-                df = pd.read_csv(io.BytesIO(data_bytes))
-            except:
-                df = pd.read_excel(io.BytesIO(data_bytes))
-
-        return df
-    except Exception as e:
-        print(f"Cloud Download Error: {e}")
-        raise ValueError(f"Failed to load data from cloud: {str(e)}")
 
 # ... (باقي الدوال كما هي) ...
 
@@ -224,29 +192,14 @@ def run_single_equation_diagnostics(model_results):
     return diagnostics
 
 def get_dataframe_from_cloud(file_path):
-    """
-    تحميل ملف من Firebase Storage وتحويله لـ DataFrame
-    """
-    try:
-        print(f"Downloading file from cloud: {file_path}")
-        bucket = storage.bucket()
-        blob = bucket.blob(file_path)
-
-        # تحميل الملف في الذاكرة (RAM)
-        data_bytes = blob.download_as_string()
-
-        # تحديد الامتداد من اسم الملف
-        if file_path.endswith('.csv'):
-            df = pd.read_csv(io.BytesIO(data_bytes))
-        elif file_path.endswith(('.xlsx', '.xls')):
-            df = pd.read_excel(io.BytesIO(data_bytes))
-        else:
-            raise ValueError("Unsupported file format in cloud storage.")
-
-        return df
-    except Exception as e:
-        print(f"Cloud Download Error: {e}")
-        raise ValueError(f"Failed to load data from cloud. Please re-upload the file.")
+    import os
+    if not os.path.exists(file_path):
+         raise ValueError(f"File not found: {file_path}")
+    if file_path.endswith('.csv'):
+        return pd.read_csv(file_path)
+    elif file_path.endswith(('.xlsx', '.xls')):
+        return pd.read_excel(file_path)
+    raise ValueError("File format unsupported.")
     
 # --- OLS Model ---
 def run_ols_model(df, dependent_var, independent_vars, cov_type='nonrobust', cov_kwds=None):
