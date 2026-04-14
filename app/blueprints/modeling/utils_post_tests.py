@@ -42,7 +42,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Lasso, Ridge, ElasticNet
-import xgboost as xgb
+try:
+    import xgboost as xgb
+except ImportError:
+    print("Warning: xgboost not installed. XGBoost models will not be available.")
+    xgb = None
 import traceback
 import warnings
 

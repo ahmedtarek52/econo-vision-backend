@@ -1,5 +1,10 @@
 import os
-import google.generativeai as genai
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+    print("Warning: google.generativeai package not installed. AI chat features are disabled.")
+
 from flask import Blueprint, request, jsonify, current_app
 import pandas as pd 
 from app.decorators import login_required 
@@ -24,14 +29,16 @@ except ImportError as e:
 ai_core_bp = Blueprint('ai_core_api', __name__)
 
 # --- إعداد Gemini API ---
+model = None
 try:
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-    if not GEMINI_API_KEY:
+    if genai is None:
+        print("Warning: google.generativeai is not available, Gemini AI Core disabled.")
+    elif not GEMINI_API_KEY:
         print("Warning: GEMINI_API_KEY environment variable not set.")
-        model = None
     else:
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash-latest') 
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
         print("Gemini AI Core (gemini-1.5-flash-latest) initialized successfully.")
 except Exception as e:
     print(f"Error initializing Gemini AI Core: {e}")
@@ -54,6 +61,28 @@ def handle_error(e, default_message="An error occurred", status_code=500):
         status_code = 503
     
     return jsonify({"error": user_message}), status_code
+
+
+def validate_dataset_payload(payload):
+    """Validate and normalize the incoming dataset payload."""
+    if not payload or 'dataset' not in payload:
+        raise ValueError("Missing 'dataset' in request payload.")
+
+    dataset = payload['dataset']
+
+    if isinstance(dataset, dict):
+        if not dataset:
+            raise ValueError("'dataset' must be a non-empty list or dict.")
+        return pd.DataFrame(dataset)
+
+    if isinstance(dataset, list):
+        if not dataset:
+            raise ValueError("'dataset' must be a non-empty list.")
+
+        # Accept both list-of-objects and list-of-values.
+        return pd.DataFrame(dataset)
+
+    raise ValueError("'dataset' must be a list of row objects or a dictionary of columns.")
 
 SYSTEM_PROMPT = """
 أنت "مساعد DataNomics"، وهو مرشد ذكاء اصطناعي خبير في منصة "DataNomics".
@@ -108,20 +137,17 @@ def generate_initial_briefing():
 
     try:
         payload = request.get_json()
-        if not payload or 'dataset' not in payload:
-            raise ValueError("Missing 'dataset' in request payload.")
-        
-        dataset = payload['dataset']
-        if not isinstance(dataset, list) or not dataset:
-            raise ValueError("'dataset' must be a non-empty list.")
-        
-        df = pd.DataFrame(dataset)
+        df = validate_dataset_payload(payload)
+
         # تحويل البيانات الرقمية
         df = df.apply(pd.to_numeric, errors='ignore')
-        
+
+        if df.empty:
+            raise ValueError("Dataset is empty after parsing. Please provide a non-empty dataset.")
+
         assessment_results = run_initial_data_assessment(df)
         final_briefing = synthesize_briefing_recommendations(assessment_results)
-        
+
         return jsonify(final_briefing), 200
 
     except Exception as e:

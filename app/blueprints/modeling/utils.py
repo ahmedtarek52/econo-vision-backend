@@ -3,7 +3,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import Lasso, LassoCV, ElasticNetCV, RidgeCV
 from sklearn.ensemble import RandomForestRegressor
-from xgboost import XGBRegressor
+try:
+    from xgboost import XGBRegressor
+except ImportError:
+    print("Warning: xgboost not installed. XGBoost models will not be available.")
+    XGBRegressor = None
 from arch import arch_model
 from statsmodels.tsa.api import VAR, VECM
 from statsmodels.tsa.statespace.sarimax import SARIMAX
@@ -47,7 +51,11 @@ from statsmodels.discrete.discrete_model import Logit, Probit
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from xgboost import XGBRegressor
+try:
+    from xgboost import XGBRegressor
+except ImportError:
+    print("Warning: xgboost not installed. XGBoost models will not be available.")
+    XGBRegressor = None
 from sklearn.metrics import r2_score, mean_squared_error
 import time
 
