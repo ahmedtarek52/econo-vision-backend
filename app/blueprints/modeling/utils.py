@@ -254,9 +254,11 @@ def run_ols_model(df, dependent_var, independent_vars, cov_type='nonrobust', cov
 
 # --- ARDL Model ---
 
-def run_ardl_model(df, endog_var, exog_vars, lags=None, exog_lags=0, order=None, trend='c', selection_method='fixed'):
+# --- ARDL Model (المطورة لدعم الأخطاء المتينة والمحاكاة) ---
+
+def run_ardl_model(df, endog_var, exog_vars, lags=None, exog_lags=0, order=None, trend='c', selection_method='fixed', cov_type='nonrobust', cov_kwds=None):
     """
-    ARDL Model: Supports both 'fixed' lags and 'auto' selection (AIC).
+    ARDL Model: Supports both 'fixed' lags and 'auto' selection (AIC), with full robust covariance support.
     """
     try:
         from statsmodels.tsa.ardl import ARDL, ardl_select_order
@@ -279,20 +281,20 @@ def run_ardl_model(df, endog_var, exog_vars, lags=None, exog_lags=0, order=None,
         lags_y = int(lags) if lags is not None else 1
         lags_x = int(exog_lags) if exog_lags is not None else 0
         
-        print(f"DEBUG ARDL: Method={selection_method}, Y_Val={lags_y}, X_Val={lags_x}")
+        print(f"DEBUG ARDL: Method={selection_method}, Y_Val={lags_y}, X_Val={lags_x}, Cov={cov_type}")
 
-        # 3. تشغيل النموذج حسب الطريقة
+        # 3. تشغيل النموذج حسب الطريقة وتمرير معاملات تصحيح الانحرافات
         if selection_method == 'auto':
             # الوضع التلقائي: نستخدم القيم كحد أقصى (Max Lags)
-            # ic='aic' هو المعيار الأشهر
             sel_res = ardl_select_order(endog, maxlag=lags_y, exog=exog, maxorder=lags_x, trend=trend, ic='aic')
             model = sel_res.model
-            results = model.fit()
+            results = model.fit(cov_type=cov_type, cov_kwds=cov_kwds) # 👈 تمرير الـ Robust Covariance هنا
             print(f"Auto Selected Order: {sel_res.model.ardl_order}")
         else:
             # الوضع اليدوي (Fixed): نطبق القيم كما هي
             model = ARDL(endog, lags=lags_y, exog=exog, order=lags_x, trend=trend)
-            results = model.fit() 
+            results = model.fit(cov_type=cov_type, cov_kwds=cov_kwds) # 👈 وتمريرها هنا أيضاً
+            
 
         # 4. النتائج (مشتركة)
         r_squared = getattr(results, 'rsquared', 0.0)
@@ -316,13 +318,25 @@ def run_ardl_model(df, endog_var, exog_vars, lags=None, exog_lags=0, order=None,
                          lr_params.append({"variable": name, "coefficient": round(val, 5)})
         except: pass
 
+        # استخراج أول P-Value للمتغير المستقل لإظهاره في جدول المقارنة والـ Quick Fix
+        first_regressor_pvalue = None
+        try:
+            if results.pvalues is not None and len(results.pvalues) > 1:
+                # الفهرس 0 هو للثابت أو الـ Lags الأولى، نبحث عن أول ظهور للـ X
+                for idx, name in enumerate(results.model.exog_names):
+                    if any(x in name for x in exog_vars):
+                        first_regressor_pvalue = results.pvalues[idx]
+                        break
+        except: pass
+
         return {
             "summary_html": results.summary().as_html(),
             "diagnostics": run_single_equation_diagnostics(results),
             "metrics": {
                 "aic": getattr(results, 'aic', 0),
                 "bic": getattr(results, 'bic', 0),
-                "r_squared": getattr(results, 'rsquared', 0.0)
+                "r_squared": r_squared,
+                "P-Value (X1)": first_regressor_pvalue # 👈 هامة جداً لعمل الـ Quick Fix التلقائي في المقارنات
             },
             "fitted_model_object": results,
             "ardl_extra": {"bounds_test": bounds_data, "long_run": lr_params} if bounds_data else None
