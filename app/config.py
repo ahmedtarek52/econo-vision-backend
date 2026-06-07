@@ -28,16 +28,13 @@ class Config:
     # 3. منع JavaScript من قراءة "الكوكي"
     SESSION_COOKIE_HTTPONLY = True
     
-    # 4. السماح بإرسال "الكوكي" عبر http (للاختبار المحلي)
-    # (هام: عند النشر على سيرفر حقيقي، يجب تغيير هذا إلى True)
-    SESSION_COOKIE_SECURE = False
+    # 4. تفعيل الكوكي الآمنة في الإنتاج (Render يستخدم HTTPS)
+    SESSION_COOKIE_SECURE = os.getenv('FLASK_ENV', 'production') == 'production'
     
-    # 5. هذا هو الحل لمشكلة (localhost) مقابل (127.0.0.1)
-    # هذا يخبر المتصفح أن "الكوكي" صالحة لكلا الدومينين
-    SESSION_COOKIE_SAMESITE = 'Lax'
+    # 5. السماح بإرسال الكوكي عبر الدومينات المختلفة (cross-site) في الإنتاج ليعمل مع Vercel
+    SESSION_COOKIE_SAMESITE = 'None' if os.getenv('FLASK_ENV', 'production') == 'production' else 'Lax'
     
-    # 6. (اختياري لكن موصى به) تحديد الدومين
-    # بما أنك استخدمت 'localhost' في ملف config.js للفرونت إند، سنستخدم 'localhost' هنا
-    # هذا يضمن أن المتصفح يرسل الكوكي دائماً عندما يطلب من 'localhost'
-    SESSION_COOKIE_DOMAIN = 'localhost' 
+    # 6. إلغاء حصر الدومين بـ localhost في الإنتاج
+    SESSION_COOKIE_DOMAIN = None if os.getenv('FLASK_ENV', 'production') == 'production' else 'localhost'
+
     # --- (!!!) (نهاية التعديل) (!!!) ---

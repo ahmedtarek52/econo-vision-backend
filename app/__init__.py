@@ -135,6 +135,10 @@ def create_app():
         print(f"Warning: external_data_bp not found. Error: {e}")
         
     # --------------------------------------------------------
+    @app.route('/healthz')
+    def healthz():
+        return {"status": "healthy"}, 200
     
     return app
+
    
