@@ -1,6 +1,16 @@
+---
+title: Datanomics Backend
+emoji: 🚀
+colorFrom: gray
+colorTo: gray
+sdk: docker
+pinned: false
+---
+
 # EconoVision Backend
 
 This is the backend for the EconoVision project, built with Flask.
+
 
 ## Getting Started
 
