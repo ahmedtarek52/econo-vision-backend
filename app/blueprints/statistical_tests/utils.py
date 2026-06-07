@@ -235,40 +235,35 @@ def run_optimal_lag_selection(df, variables, maxlags=8):
     """Generates VAR Lag Order Selection Criteria table."""
     data = df[variables].dropna().select_dtypes(include=np.number)
     if len(data) < maxlags + 5:
-        raise ValueError("Insufficient observations.")
+        raise ValueError(f"Insufficient observations. You have {len(data)} rows, but need at least {maxlags + 5} for maxlags={maxlags}.")
 
     try:
         model = VAR(data)
-        # statsmodels lag order selection summary is already excellent
         lag_results = model.select_order(maxlags=maxlags)
-        summary = lag_results.summary()
         
-        # تحويل الجدول النصي لـ HTML احترافي
-        html_obj = summary.as_html()
+        # تحويل مخرجات الجدول النصية الشبيهة بـ EViews لسلسلة نصية
+        summary_text = str(lag_results.summary())
         
-        # إضافة ترويسة EViews
+        # 🟢 صياغة عرض نصي منسق ومحمي داخل بلوك HTML احترافي
         final_html = f"""
-        <div style='font-family: Arial; font-size: 12px;'>
-        <b>VAR Lag Order Selection Criteria</b><br>
-        Endogenous variables: {', '.join(variables)}<br>
-        Included observations: {len(data) - maxlags}<br>
-        <br>
-        {html_obj}
-        <br>
-        <small>* indicates lag order selected by the criterion</small><br>
-        <small>AIC: Akaike information criterion</small><br>
-        <small>SC: Schwarz information criterion</small><br>
-        <small>HQ: Hannan-Quinn information criterion</small>
+        <div style='font-family: monospace; font-size: 13px; white-space: pre; background: #f8f9fa; padding: 15px; border-radius: 4px; border: 1px solid #e5e7eb; color: #1f2937;'>
+<b>VAR Lag Order Selection Criteria</b>
+Endogenous variables: {', '.join(variables)}
+Included observations: {len(data) - maxlags}
+------------------------------------------------------------------------
+{summary_text}
+------------------------------------------------------------------------
+<small>* indicates lag order selected by the criterion</small><br>
+<small>AIC: Akaike information criterion | SC: Schwarz information criterion | HQ: Hannan-Quinn information criterion</small>
         </div>
         """
         
-        interp = f"Selected Lag: AIC({lag_results.aic}), SC({lag_results.bic}), HQ({lag_results.hqic})."
+        interp = f"Optimal lag selection computed. Suggested structures based on testing: AIC ({lag_results.aic}), SC ({lag_results.bic}), HQ ({lag_results.hqic})."
+        return {"formatted_results": final_html, "interpretation": interp}
         
     except Exception as e:
         raise RuntimeError(f"Lag selection failed: {e}")
-
-    return {"formatted_results": final_html, "interpretation": interp}
-
+    
 # --- (6) Johansen Cointegration Test ---
 # --- (6) Johansen Cointegration - EViews Style ---
 def run_johansen_cointegration_test(df, variables, det_order=0, k_ar_diff=1):
@@ -518,7 +513,8 @@ def run_zivot_andrews_test(df, variable):
     """
     Runs Zivot-Andrews test for unit root with structural break.
     """
-    series = df[variable].dropna()
+    # Cast series to float to avoid NumPy divide ufunc casting conflicts (e.g., float64 to int64)
+    series = df[variable].dropna().astype(float)
     if len(series) < 30:
         # (تعديل) رسالة أوضح
         return {
@@ -554,16 +550,22 @@ def run_zivot_andrews_test(df, variable):
 def run_pesaran_cd_test(df, variable, panel_id_var, panel_time_var):
     """
     Calculates Pesaran (2004) CD test.
+    Handles duplicate panel entries gracefully via auto-aggregation.
     """
     try:
-        # 1. Reshape to Wide Format
-        # (Check for duplicates first to avoid pivot error)
-        if df.duplicated(subset=[panel_time_var, panel_id_var]).any():
-             raise ValueError(f"Duplicates detected in Panel ID/Time combinations. Please remove duplicates in 'Data Preparation' first.")
-
-        wide_df = df.pivot(index=panel_time_var, columns=panel_id_var, values=variable)
+        # 1. تنظيف أولي وتجهيز البيانات
+        panel_df = df[[panel_time_var, panel_id_var, variable]].dropna()
         
-        # Drop entities with ANY missing values (Pesaran CD requires balanced correlation computation)
+        # 🟢 التعديل: إزالة أكواد الـ HTML واستخدام الفواصل النصية القياسية لتبدو نظيفة في الواجهة
+        has_duplicates_warning = ""
+        if panel_df.duplicated(subset=[panel_time_var, panel_id_var]).any():
+            panel_df = panel_df.groupby([panel_time_var, panel_id_var], as_index=False)[variable].mean()
+            has_duplicates_warning = "\n\n⚠️ Note: Duplicate Panel ID/Time entries were detected and automatically aggregated using their mean value."
+
+        # 2. Reshape to Wide Format بأمان مطلق
+        wide_df = panel_df.pivot(index=panel_time_var, columns=panel_id_var, values=variable)
+        
+        # إسقاط الكيانات التي تحتوي على أي قيم مفقودة
         original_N = wide_df.shape[1]
         wide_df = wide_df.dropna(axis=1, how='any') 
         
@@ -576,22 +578,19 @@ def run_pesaran_cd_test(df, variable, panel_id_var, panel_time_var):
         if T < 5:
             raise ValueError(f"Time series too short (T={T}). Need at least 5 periods.")
 
-       
-        # 2. Calculate Correlation Matrix
+        # 3. حساب مصفوفة الارتباط
         corr_matrix = wide_df.corr().values
         
-        # 3. Sum off-diagonal elements
-        # Only upper triangle (excluding diagonal)
+        # 4. جمع عناصر خارج القطر الرئيسي
         rho_sum = 0
         for i in range(N):
             for j in range(i + 1, N):
                 rho_sum += corr_matrix[i, j]
                 
-        # 4. Calculate Statistic
-        # CD ~ N(0, 1)
+        # 5. حساب إحصائية الاختبار
         cd_stat = np.sqrt((2 * T) / (N * (N - 1))) * rho_sum
         
-        # 5. Calculate P-Value (Two-tailed)
+        # 6. حساب الـ P-Value
         p_value = 2 * (1 - norm.cdf(abs(cd_stat)))
         
         output = f"Pesaran CD Test (Cross-Sectional Dependence)\n"
@@ -609,7 +608,120 @@ def run_pesaran_cd_test(df, variable, panel_id_var, panel_time_var):
         if has_dependence:
             interpretation += "\nRecommendation: Use Driscoll-Kraay standard errors or Spatial models."
             
+        # 🟢 ربط التنبيه النصي النظيف بدون تاجز الـ HTML
+        if has_duplicates_warning:
+            interpretation += has_duplicates_warning
+            
         return {"formatted_results": output, "interpretation": interpretation}
         
     except Exception as e:
         raise RuntimeError(f"Pesaran CD test failed: {e}")
+
+def run_kao_panel_cointegration(df, dependent_var, independent_vars, panel_id_var, panel_time_var):
+    """
+    Performs a residual-based Kao-type Panel Cointegration test.
+    H0: No Cointegration (Residuals have a unit root).
+    Ha: Variables are Cointegrated (Residuals are stationary).
+    """
+    try:
+        # 🟢 استيراد المكتبة داخلياً لمنع الـ NameError: 'sm' is not defined
+        import statsmodels.api as sm
+        
+        # 1. تجهيز وتنظيف البيانات
+        all_cols = [panel_id_var, panel_time_var, dependent_var] + independent_vars
+        panel_df = df[all_cols].dropna()
+        
+        # 2. إزالة تأثير الفروق الفردية (Entity Demeaning) لمحاكاة الـ Fixed Effects
+        panel_df['demeaned_Y'] = panel_df.groupby(panel_id_var)[dependent_var].transform(lambda x: x - x.mean())
+        
+        for var in independent_vars:
+            panel_df[f'demeaned_{var}'] = panel_df.groupby(panel_id_var)[var].transform(lambda x: x - x.mean())
+            
+        # 3. تشغيل الانحدار الهيكلي الأول لاستخراج البواقي
+        Y_static = panel_df['demeaned_Y']
+        X_static = panel_df[[f'demeaned_{var}' for var in independent_vars]]
+        
+        static_reg = sm.OLS(Y_static, X_static).fit()
+        panel_df['residuals'] = static_reg.resid
+        
+        # 4. اختبار جذر الوحدة على البواقي (Panel ADF on Residuals)
+        panel_df['resid_lag1'] = panel_df.groupby(panel_id_var)['residuals'].shift(1)
+        panel_df['resid_diff'] = panel_df.groupby(panel_id_var)['residuals'].diff()
+        
+        regression_data = panel_df[['resid_diff', 'resid_lag1']].dropna()
+        
+        if len(regression_data) < 10:
+            raise ValueError("Insufficient continuous time periods to calculate panel cointegration.")
+            
+        adf_reg = sm.OLS(regression_data['resid_diff'], regression_data['resid_lag1']).fit()
+        
+        rho = adf_reg.params.iloc[0]
+        t_stat = adf_reg.tvalues.iloc[0]
+        p_val = adf_reg.pvalues.iloc[0]
+        
+        output = f"Kao Residual Cointegration Test (Panel ADF Framework)\n"
+        output += f"Dependent Variable: {dependent_var}\n"
+        output += f"Exogenous Regressors: {', '.join(independent_vars)}\n"
+        output += "----------------------------------------\n"
+        output += f"ADF T-Statistic:      {t_stat:.4f}\n"
+        output += f"P-Value:              {p_val:.4f}\n"
+        output += f"Residual Rho Coeff:   {rho:.4f}\n"
+        
+        has_cointegration = p_val <= 0.05
+        interpretation = (
+            f"Conclusion (p={p_val:.4f}): {'REJECT H0' if has_cointegration else 'FAIL TO REJECT H0'}.\n"
+            f"{'Long-run Cointegration relationship IS present between variables.' if has_cointegration else 'No cointegration detected. The variables drift apart in the long run.'}"
+        )
+        if has_cointegration:
+            interpretation += "\nRecommendation: You can proceed safely with Panel Fixed/Random Effects or Panel VECM."
+        else:
+            interpretation += "\nRecommendation: Consider estimating the model in First Differences to avoid Spurious Regression."
+            
+        return {"formatted_results": output, "interpretation": interpretation, "statistic": t_stat, "p_value": p_val}
+        
+    except Exception as e:
+        raise RuntimeError(f"Kao Panel Cointegration test failed: {e}")
+
+
+def run_bds_test(df, variable, max_dim=3):
+    """
+    Runs the Brock-Dechert-Scheinkman (BDS) test for nonlinearity/independence.
+    H0: The series is i.i.d. (Linear/Random structure).
+    Ha: The series exhibits deterministic non-linear structures.
+    """
+    try:
+        # 🟢 استيراد دالة الاختبار داخلياً لمنع الـ NameError: 'bds' is not defined
+        from statsmodels.tsa.stattools import bds
+        
+        series = df[variable].dropna()
+        if len(series) < 15:
+            return {
+                "formatted_results": "Test Skipped",
+                "interpretation": f"BDS test requires a longer time-series (at least 15 continuous periods). You have {len(series)}."
+            }
+            
+        bds_stat, p_values = bds(series, max_dim=max_dim)
+        
+        output = f"BDS Test for Nonlinearity & Independence\n"
+        output += f"Variable Tested: {variable}\n"
+        output += "----------------------------------------\n"
+        
+        is_nonlinear = False
+        for dim in range(2, max_dim + 1):
+            stat = bds_stat[dim-2]
+            pval = p_values[dim-2]
+            output += f"Embedding Dimension {dim}: Stat={stat:.4f}, P-Value={pval:.4f}\n"
+            if pval <= 0.05:
+                is_nonlinear = True
+                
+        interpretation = (
+            f"Conclusion:\n"
+            f"The p-values across dimensions indicate that we {'REJECT H0. Significant non-linear structures detected.' if is_nonlinear else 'FAIL TO REJECT H0. The series is linear or strictly random (i.i.d.).'}\n"
+        )
+        if is_nonlinear:
+            interpretation += "Recommendation: Traditional linear models (OLS/ARDL) might underfit. Consider non-linear transformations or Machine Learning/Causal ML models."
+            
+        return {"formatted_results": output, "interpretation": interpretation}
+        
+    except Exception as e:
+        raise RuntimeError(f"BDS test failed: {e}")

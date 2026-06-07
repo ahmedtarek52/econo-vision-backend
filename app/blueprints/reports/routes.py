@@ -93,15 +93,19 @@ def generate_smart_report():
         if not isinstance(model_summary, str) or not model_summary.strip():
              return jsonify({"error": "'modelSummary' must be a non-empty string."}), 400
 
+        tone = payload.get('tone', 'academic')
+
         english_report = generate_gemini_english_report(
             model_summary=model_summary,
             diagnostics_results=diagnostics,
-            post_test_result=post_test
+            post_test_result=post_test,
+            tone=tone
         )
         arabic_report = generate_gemini_arabic_report(
             model_summary=model_summary,
             diagnostics_results=diagnostics,
-            post_test_result=post_test
+            post_test_result=post_test,
+            tone=tone
         )
 
         # (!!!) (تعديل) استدعاء العداد الجديد

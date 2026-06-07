@@ -2,6 +2,7 @@ from flask import Flask
 import os
 from flask_cors import CORS
 
+
 # (تم حذف استيراد Redis بناءً على طلبك السابق والإبقاء عليه كتعليق إذا أردت استرجاعه)
 # from .extensions import redis_client 
 
@@ -17,16 +18,16 @@ def create_app():
     # supports_credentials=True ضروري لإرسال الـ cookies/auth headers
     CORS(app, 
          supports_credentials=True, 
-         origins=["http://localhost:5173", "https://econo-vision.vercel.app"],
+         origins=["http://localhost:5173", "http://localhost:5174", "https://econo-vision.vercel.app"],
          allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
          methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"]
     )
-
+ 
     # --- تعريف إعدادات CORS الموحدة للـ Blueprints ---
     # نستخدم هذا التكوين لضمان توحيد السياسات لكل الـ Endpoints
     cors_config = {
         "supports_credentials": True,
-        "origins": ["http://localhost:5173", "https://econo-vision.vercel.app"],
+        "origins": ["http://localhost:5173", "http://localhost:5174", "https://econo-vision.vercel.app"],
         "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
         "methods": ["GET", "POST", "OPTIONS"]
     }
@@ -117,5 +118,23 @@ def create_app():
         app.register_blueprint(contact_bp, url_prefix='/api/contact')
     except ImportError:
         print("Warning: contact_bp (Contact) not found.")
+    # ========================================================
+    # 10. 🌍 البيانات الخارجية (External Data - World Bank/IMF)
+    # ========================================================
+    try:
+        # نستخدم الاستدعاء النسبي (Relative Import) زي باقي الملف
+        from .blueprints.external_data.routes import external_data_bp
+        
+        # تفعيل CORS عشان الفرونت إند ميضربش إيرور
+        CORS(external_data_bp, resources={r"/api/external-data/*": cors_config})
+        
+        # تسجيل المسار في التطبيق
+        app.register_blueprint(external_data_bp)
+        print("✅ External Data Blueprint Registered Successfully!")
+    except ImportError as e:
+        print(f"Warning: external_data_bp not found. Error: {e}")
+        
+    # --------------------------------------------------------
     
     return app
+   

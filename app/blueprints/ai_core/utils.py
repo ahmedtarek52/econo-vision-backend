@@ -285,19 +285,18 @@ def synthesize_briefing_recommendations(assessment_results):
             else: has_i0 = True
 
     # Analyze VIF
-    if not vif.get('error') and vif.get('formatted_results'):
+    if not vif.get('error') and (vif.get('formatted_results') or vif.get('interpretation')):
         high_vif_vars = []
         try:
-            # Simple parsing of string output (assuming table format)
-            lines = vif['formatted_results'].strip().split('\n')
-            # Skip header
-            for line in lines[1:]:
-                parts = line.split()
-                if len(parts) >= 2:
-                    vif_value_str = parts[-1] 
-                    var_name = " ".join(parts[:-1]) 
-                    if float(vif_value_str) > 10.0:
-                        high_vif_vars.append(var_name)
+            interp = vif.get('interpretation', '')
+            if "detected in:" in interp:
+                var_part = interp.split("detected in:")[-1].strip()
+                # Clean up HTML tags and punctuation
+                var_part = var_part.replace('.', '').replace('<b>', '').replace('</b>', '').replace('"', '').strip()
+                high_vif_vars = [v.strip() for v in var_part.split(',') if v.strip()]
+            
+            if vif_payload := vif: # fallback if already structured
+                pass
             
             if high_vif_vars:
                 vif_payload = {"status": "High", "high_vif_vars": high_vif_vars, "message": f"Warning: High multicollinearity (VIF > 10) detected in: {', '.join(high_vif_vars)}."}

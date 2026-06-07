@@ -11,9 +11,12 @@ from .utils import (
     run_johansen_cointegration_test,
     run_granger_causality_test,
     run_panel_unit_root_test,
-    run_zivot_andrews_test, run_pesaran_cd_test # (جديد)
+    run_zivot_andrews_test, 
+    run_pesaran_cd_test,
+    run_kao_panel_cointegration,  # 🟢 ضِف هذا
+    run_bds_test                  # 🟢 ضِف هذا
 )
-
+from statsmodels.tsa.stattools import bds
 # --- استيراد ديكوريتور حماية المسارات ---
 from app.decorators import login_required
 
@@ -99,13 +102,22 @@ def run_pre_estimation_test():
            # تحويل البيانات إلى DataFrame
             df[col] = pd.to_numeric(df[col], errors='coerce') 
         # تحديد أعمدة الهوية والوقت لحمايتها من التحويل الرقمي القسري
+        # تحويل البيانات إلى DataFrame
+        df = pd.DataFrame(dataset)
+        
+        # 🟢 التعديل السحري: تحديد وحماية أعمدة الهوية والوقت أولاً قبل تشغيل التحويل الرقمي
         protected_cols = []
-        if 'params' in payload:
-            if 'panel_id_var' in payload['params']: protected_cols.append(payload['params']['panel_id_var'])
-            if 'panel_time_var' in payload['params']: protected_cols.append(payload['params']['panel_time_var'])
-            if 'variable' in payload['params']: 
-                 # المتغير المستهدف يجب أن يكون رقمياً، لا نحميه
-                 pass
+        if params:
+            if 'panel_id_var' in params: protected_cols.append(params['panel_id_var'])
+            if 'panel_time_var' in params: protected_cols.append(params['panel_time_var'])
+
+        # تنظيف وتحويل البيانات في دورة واحدة آمنة تمنع تحويل النصوص لـ NaN
+        for col in df.columns:
+            if col in protected_cols:
+                continue # حماية كاملة لأعمدة الكيانات والتواريخ
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+        
+        results = {}
 
         # تنظيف وتحويل البيانات
         for col in df.columns:
@@ -213,6 +225,27 @@ def run_pre_estimation_test():
             results = run_zivot_andrews_test(df, variable)
 
         # 9. Pesaran CD
+        # 10. Kao Panel Cointegration Test (New!)
+        elif test_id == 'panel_cointegration':
+            variable = params.get('variable') # المتغير التابع
+            independent_vars = params.get('independent_vars', [])
+            panel_id_var = params.get('panel_id_var')
+            panel_time_var = params.get('panel_time_var')
+            
+            if not variable or not independent_vars or not panel_id_var or not panel_time_var:
+                raise ValueError("Missing parameters for Kao Panel Cointegration. Requires Y, X list, Panel ID, and Time ID.")
+                
+            results = run_kao_panel_cointegration(df, variable, independent_vars, panel_id_var, panel_time_var)
+
+        # 11. BDS Nonlinearity Test (New!)
+        elif test_id == 'bds_test':
+            variable = params.get('variable')
+            max_dim = int(params.get('max_dim', 3))
+            
+            if not variable:
+                raise ValueError("Missing 'variable' parameter for BDS test.")
+                
+            results = run_bds_test(df, variable, max_dim=max_dim)
         elif test_id == 'pesaran_cd':
             variable = params.get('variable')
             panel_id_var = params.get('panel_id_var')

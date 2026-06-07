@@ -20,3 +20,4 @@ packaging
 PyYAML
 SQLAlchemy
 Werkzeug
+linearmodels

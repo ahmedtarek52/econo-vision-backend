@@ -73,6 +73,22 @@ def scan_dataset_health(df, manual_date_col=None):
                 
                 bad_indices = date_conv.isnull() & df[col].notnull()
                 report['sample_errors'] = df.loc[bad_indices, col].head(5).astype(str).tolist()
+            else:
+                # فحص الفجوات الزمنية في حال كانت التواريخ صحيحة بالكامل
+                try:
+                    sorted_dates = pd.Series(date_conv).sort_values().dropna().unique()
+                    if len(sorted_dates) > 3:
+                        diffs = pd.Series(sorted_dates).diff().dropna()
+                        mode_diff = diffs.mode()
+                        if not mode_diff.empty:
+                            expected_diff = mode_diff.iloc[0]
+                            gaps = diffs[diffs > expected_diff]
+                            if not gaps.empty:
+                                report['issues'].append('time_gaps_detected')
+                                report['recommendation'] = 'none' # الإرشاد فقط
+                                report['sample_errors'].append(f"TS Gaps detected (Expected step: {expected_diff})")
+                except Exception as ts_err:
+                    print(f"TS Gap analysis failed: {ts_err}")
             
             # **توقف هنا لهذا العمود**
             continue

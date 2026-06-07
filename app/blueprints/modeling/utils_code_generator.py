@@ -784,6 +784,46 @@ except Exception as e:
     return imports, model_logic
 
 
+def _get_panel_gmm_code(params):
+    y_var = params.get('dependent_var')
+    x_vars = params.get('independent_vars', [])
+    id_var = params.get('panel_id_var')
+    time_var = params.get('panel_time_var')
+    
+    imports = "import pandas as pd\nimport numpy as np\nimport statsmodels.api as sm\n"
+    imports += "from linearmodels.panel import PanelGMM\n"
+    
+    model_logic = f"""
+# --- 3. Setup Panel Data ---
+# Ensure MultiIndex is set correctly
+data = data.set_index(['{id_var}', '{time_var}']).sort_index()
+
+# 4. Construct Lagged Y and Instruments (Arellano-Bond setup)
+data['lagged_Y'] = data.groupby(level=0)['{y_var}'].shift(1)
+data['inst_lag2'] = data.groupby(level=0)['{y_var}'].shift(2)
+data['inst_lag3'] = data.groupby(level=0)['{y_var}'].shift(3)
+
+# Drop NaNs from lagging
+clean_data = data.dropna()
+
+Y = clean_data['{y_var}']
+X_exog = clean_data[{x_vars}]
+X_endog = clean_data[['lagged_Y']]
+instruments = clean_data[['inst_lag2', 'inst_lag3']]
+
+# --- 5. Fit Panel GMM Model (Arellano-Bond Dynamic Panel GMM) ---
+model = PanelGMM(Y, X_exog, X_endog, instruments)
+results = model.fit(cov_type='robust')
+
+# --- 6. View Results ---
+print(results.summary)
+if hasattr(results, 'sargan'):
+    print("\\n--- Sargan Overidentification Test ---")
+    print(f"J-Statistic: {{results.sargan.stat:.4f}} (p={{results.sargan.pvalue:.4f}})")
+"""
+    return imports, model_logic
+
+
 def _get_default_code(model_id, params):
     """(Fallback)"""
     imports = "import pandas as pd\n"
@@ -810,8 +850,8 @@ import matplotlib.pyplot as plt
 plt.figure(figsize=(10, 6))
 """
 
-    # 1. حالة النماذج القياسية (OLS, ARDL, ARIMA, Logit, etc.)
-    if model_id in ['ols', 'ardl', 'logit', 'probit', 'arima']:
+    # 1. حالة النماذج القياسية (OLS, ARDL, ARIMA, Logit, Panel, GMM, etc.)
+    if model_id in ['ols', 'ardl', 'logit', 'probit', 'arima', 'panel', 'panel_gmm']:
         plot_logic += "plt.plot(Y.values, label='Actual', color='blue')\n"
         plot_logic += "plt.plot(results.fittedvalues.values, label='Fitted', color='red', linestyle='--')\n"
         
@@ -880,10 +920,10 @@ def generate_code_snippet(model_id, params, df, transformation_history=None):
     elif model_id in ['var', 'vecm']:
         required_cols.update(params.get('variables', []))
         
-    elif model_id in ['ols', 'lasso', 'ridge', 'elastic_net', 'logit', 'probit', 'random_forest', 'xgboost', 'panel']:
+    elif model_id in ['ols', 'lasso', 'ridge', 'elastic_net', 'logit', 'probit', 'random_forest', 'xgboost', 'panel', 'panel_gmm']:
         required_cols.add(params.get('dependent_var'))
         required_cols.update(params.get('independent_vars', []))
-        if model_id == 'panel':
+        if model_id in ['panel', 'panel_gmm']:
              required_cols.add(params.get('panel_id_var'))
              required_cols.add(params.get('panel_time_var'))
 
@@ -936,6 +976,8 @@ def generate_code_snippet(model_id, params, df, transformation_history=None):
         imports, model_logic = _get_ardl_code(params)
     elif model_id == 'panel':
         imports, model_logic = _get_panel_code(params)
+    elif model_id == 'panel_gmm':
+        imports, model_logic = _get_panel_gmm_code(params)
     else:
         # Fallback (in case a model ID is missed)
         imports, model_logic = _get_default_code(model_id, params)
