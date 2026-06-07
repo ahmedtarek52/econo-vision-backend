@@ -19,4 +19,4 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git push --force https://mohamedfawzi2017-crypto:$HF_TOKEN@huggingface.co/spaces/mohamedfawzi2017-crypto/datanomics-backend main
+          git push --force https://mohamedfawzy3:$HF_TOKEN@huggingface.co/spaces/mohamedfawzy3/datanomics-backend main
