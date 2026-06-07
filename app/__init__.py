@@ -18,7 +18,7 @@ def create_app():
     # supports_credentials=True ضروري لإرسال الـ cookies/auth headers
     CORS(app, 
          supports_credentials=True, 
-         origins=["http://localhost:5173", "http://localhost:5174", "https://econo-vision.vercel.app"],
+         origins=["http://localhost:5173", "http://localhost:5174", "https://datanomics-ai.vercel.app"],
          allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
          methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"]
     )
@@ -27,10 +27,11 @@ def create_app():
     # نستخدم هذا التكوين لضمان توحيد السياسات لكل الـ Endpoints
     cors_config = {
         "supports_credentials": True,
-        "origins": ["http://localhost:5173", "http://localhost:5174", "https://econo-vision.vercel.app"],
+        "origins": ["http://localhost:5173", "http://localhost:5174", "https://datanomics-ai.vercel.app"],
         "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
         "methods": ["GET", "POST", "OPTIONS"]
     }
+
 
     # ============================================================
     # تسجيل الـ Blueprints (وحدات التطبيق)
