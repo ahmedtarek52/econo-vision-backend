@@ -21,3 +21,8 @@ This is the backend for the EconoVision project, built with Flask.
 -   `POST /api/analyze`: Run an economic analysis model (ARIMA, VAR, etc.).
 -   `POST /api/report`: Generate a PDF report of the analysis results.
 -   `GET /api/data`: Serves dummy data for the frontend.
+
+## Deployment
+
+This backend is deployed on Hugging Face Spaces at:
+- **URL:** [https://huggingface.co/spaces/mohamedfawzy3/datanomics-backend](https://huggingface.co/spaces/mohamedfawzy3/datanomics-backend)
