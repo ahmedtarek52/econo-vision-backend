@@ -28,8 +28,9 @@ RUN pip install --upgrade pip setuptools wheel && \
 # Copy application code
 COPY . .
 
-# Fly.io listens on port 8080
-EXPOSE 8080
+# Hugging Face listens on port 7860
+EXPOSE 7860
 
 # Start Flask app with Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "app:create_app()"]
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "2", "app:create_app()"]
+
