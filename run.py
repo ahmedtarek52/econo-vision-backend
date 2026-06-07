@@ -16,5 +16,6 @@ if __name__ == '__main__':
     if not os.path.exists(upload_folder):
         os.makedirs(upload_folder)
         
-    # The port is set to 5000 for local consistency. Gunicorn will use port 8080 in production.
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # The port is read from the environment variable PORT (with fallback to 5000 for local consistency).
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
